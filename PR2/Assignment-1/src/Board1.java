@@ -1,0 +1,285 @@
+import java.util.*;
+
+
+public class Board1<E extends Data> implements DataBoard<E>{
+
+
+	/**
+	 * Tipical Element: <MasterPassw, Owner, numCategories,{{name_0, category_0},..., {name_n,...,category_n}} >
+	 * 
+	 *
+	 * Rep Invariant:   Masterpassw != null,
+     *                  Owner != null,
+     *                  categories != null
+     *                  (numCategory == categories.size()) >= 0
+     *                  (forall category in this.categories) ==> category != null
+     *					(forall name in this.categories.keySet()) ==> name != null
+     */
+
+
+    private final String MasterPassw;
+    private final String Owner;
+    private int numCategories;
+    private Map<String, Category<E>> categories;
+
+
+    //-------------------------------------------------------------------------------------------------------------
+
+    /** Metodo costruttore */
+
+    public Board1(String owner, String Masterpassw) throws NullPointerException, IllegalArgumentException{
+
+        if(owner == null || Masterpassw == null) throw new NullPointerException();
+        this.Owner = owner;
+        MasterPassw = Masterpassw;
+        numCategories = 0;
+        categories = new HashMap<>();
+
+    }
+
+
+    //-------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che ritorna l'owner della board */
+
+    public String getOwner() {
+
+        return Owner;
+    }
+
+
+    //---------------------------------------------------------------------------------------------------------------
+
+
+    /** Metodo che ritorna il numero di categorie presenti nella board */
+
+    public int getNumCategories(){
+
+        return numCategories;
+    }
+
+    //---------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che crea una nuova categoria all'interno della bacheca */
+
+    public void createCategory(String name, String passw)
+            throws InvalidActionException, IncorrectPasswordException, NullPointerException{
+
+        if(name == null || passw == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(categories.containsKey(name)) throw new InvalidActionException("Categoria gia' presente");
+
+        categories.put(name, new Category<>());
+        numCategories++;
+    }
+
+
+    //----------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che rimuove una categoria presente nella board */
+
+    public void removeCategory(String name, String passw)
+            throws InvalidActionException, IncorrectPasswordException, NullPointerException{
+
+        if(name == null || passw == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(!categories.containsKey(name)) throw new InvalidActionException("Categoria non presente");
+        categories.remove(name);
+        numCategories--;
+    }
+
+
+    //----------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che aggiunge un amico ad una categoria */
+
+    public void addFriend(String nameCat, String passw, String friend)
+            throws IncorrectPasswordException, InvalidActionException, NullPointerException{
+
+        if(nameCat == null || passw == null || friend == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(!categories.containsKey(nameCat)) throw new InvalidActionException("Categoria non presente");
+        if(categories.get(nameCat).getFriends().contains(friend))
+            throw new InvalidActionException("Amico gia' presente");
+        categories.get(nameCat).addFriend(friend);
+    }
+
+
+    //---------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che ritorna la lista degli amici che hanno accesso alla categoria "category"*/
+
+    public ArrayList<String> getFriends(String category)
+            throws InvalidActionException, NullPointerException, IllegalArgumentException{
+
+        if(category == null) throw new NullPointerException();
+        if(!categories.containsKey(category)) throw new InvalidActionException("Categoria non presente");
+        return new ArrayList<>(categories.get(category).getFriends());
+    }
+
+    //----------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che rimuove un amico da una categoria */
+
+    public void removeFriend(String nameCat, String passw, String friend)
+            throws IncorrectPasswordException, InvalidActionException, NullPointerException, IllegalArgumentException{
+
+        if(nameCat == null || passw == null || friend == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(!categories.containsKey(nameCat)) throw new InvalidActionException("Categoria non presente");
+        if(!categories.get(nameCat).getFriends().contains(friend))
+            throw new InvalidActionException("Amico non presente");
+        categories.get(nameCat).removeFriend(friend);
+    }
+
+
+
+    //----------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che aggiunge un dato in Bacheca */
+
+    public boolean put(String passw, E dato, String categoria)
+            throws IllegalArgumentException, InvalidActionException, NullPointerException, IncorrectPasswordException{
+
+        if(passw == null || dato == null || categoria == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(!categories.containsKey(categoria)) throw new InvalidActionException("Categoria non presente");
+        if(dato.GetCategory() != null){
+            if(categories.get(categoria).getDati().contains(dato)) throw new InvalidActionException("dato gia' presente");
+        }
+        categories.get(categoria).addDato(dato);
+        dato.setCategory(categoria);
+        return true;
+    }
+
+    //---------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che ottiene una copia del dato in bacheca*/
+
+    public E get(String passw, E dato) throws IncorrectPasswordException, InvalidActionException, NullPointerException{
+
+        if(passw == null || dato == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(dato.GetCategory() == null) throw new InvalidActionException("Dato non presente nella Board");
+        if(!categories.get(dato.GetCategory()).getDati().contains(dato))
+            throw new InvalidActionException("Dato non presente nella board");
+        E aux = null;
+        for(Category<E> i : this.categories.values()) {
+            if(i.getDati().contains(dato)) aux = dato;
+
+        }
+        return aux;
+    }
+
+    //----------------------------------------------------------------------------------------------------------------
+
+    /** Metodo che rimuove un dato dalla bacheca */
+
+    public E remove(String passw, E dato)
+            throws IncorrectPasswordException, InvalidActionException, NullPointerException{
+
+        if(passw == null || dato == null) throw new NullPointerException();
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        if(dato.GetCategory() == null) throw new InvalidActionException("Dato non presente nella Board");
+        if(!categories.get(dato.GetCategory()).getDati().contains(dato))
+            throw new InvalidActionException("Dato non presente nella board");
+        String cat = dato.GetCategory();
+        Category<E> aux = categories.get(cat);
+        aux.removeDato(dato);
+        return dato;
+    }
+
+
+    //---------------------------------------------------------------------------------------------------------------
+
+    /** Crea la lista dei dati in bacheca contenuta in una determinata categoria */
+
+    public List<E> getDataCategory(String passw, String category)
+            throws IncorrectPasswordException, NullPointerException, InvalidActionException{
+
+        if(passw == null || category == null) throw new NullPointerException();
+        if(!categories.containsKey(category)) throw new InvalidActionException("Categoria non presente");
+        if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+        Category<E> aux = this.categories.get(category);
+        return aux.getDati();
+    }
+
+    //----------------------------------------------------------------------------------------------------------------
+
+        /** Metodo che ritorna una copia di tutti i dati in bacheca in ordine di like */
+
+        public Iterator<E> getIterator(String passw)
+                throws NullPointerException, IncorrectPasswordException{
+
+            if(passw == null) throw new NullPointerException();
+            if(!this.MasterPassw.equals(passw)) throw new IncorrectPasswordException("Password Errata");
+            List<E> aux = new ArrayList<>();
+            for (String cat: this.categories.keySet()) {
+                aux.addAll(categories.get(cat).getDati());
+            }
+            Collections.sort(aux);
+            return aux.iterator();
+        }
+
+
+    //----------------------------------------------------------------------------------------------------------------
+
+        /** Metodo che ritorna una copia non modificabile di tutti i dati a cui ha accesso un amico */
+
+        public Iterator<E> getFriendIterator(String friend) throws NullPointerException{
+
+            if(friend == null) throw new NullPointerException();
+            List<E> aux = new ArrayList<>();
+            for (String cat: this.categories.keySet()) {
+                if( categories.get(cat).getFriends().contains(friend)){
+                    aux.addAll(categories.get(cat).getDati());
+                }
+            }
+            return aux.iterator();
+        }
+
+    //----------------------------------------------------------------------------------------------------------------
+
+        /** Metodo che aggiunge un like da parte di un utente nella lista amici */
+
+        public void insertLike(String friend, Data dato)
+                throws InvalidActionException, NullPointerException{
+
+            if(friend == null || dato == null) throw new NullPointerException();
+            if(dato.GetCategory() == null) throw new InvalidActionException("Dato non presente nella Board");
+            if(!categories.get(dato.GetCategory()).getFriends().contains(friend)) {
+                throw new InvalidActionException("Non puoi visualizzare questo dato");
+            }
+            boolean found = false;
+            for (String cat: this.categories.keySet()) {
+                if(categories.get(cat).getDati().contains(dato)) found = true;
+            }
+            if(!found) throw new InvalidActionException("dato non presente");
+            if(dato.GetLikes().contains(friend))
+                throw new InvalidActionException("Hai gia' messo like a questo dato");
+            dato.insertlike(friend);
+        }
+
+    //----------------------------------------------------------------------------------------------------------------
+
+        /** Metodo che rimuove un like assegnato ad un dato da un utente sulla lista amici */
+
+        public void removeLike(String friend, Data dato)
+                throws InvalidActionException,NullPointerException{
+
+            if(friend == null || dato == null) throw new NullPointerException();
+            if(dato.GetCategory() == null) throw new InvalidActionException("Dato non presente nella Board");
+            if(!categories.get(dato.GetCategory()).getFriends().contains(friend)) {
+                throw new InvalidActionException("Non puoi visualizzare questo contenuto");
+            }
+            boolean found = false;
+            for (String cat: this.categories.keySet()) {
+                if(categories.get(cat).getDati().contains(dato)) found = true;
+            }
+            if(!found) throw new InvalidActionException("dato non presente");
+            if(!dato.GetLikes().contains(friend))
+                throw new InvalidActionException("Non hai ancora messo like a questo dato");
+            dato.removeLike(friend);
+        }
+
+}
